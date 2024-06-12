@@ -18,30 +18,28 @@ struct myRNN
     h#Vector{Float64}
 end
 
-function update_weights!(graph::Vector, learning_rate::Float64, batch_size::Int64)
+function update_weights!(graph, learning_rate)
     for node in graph
-        if isa(node, Variable) && hasproperty(node, :batch_gradient)
-            node.batch_gradient ./= batch_size
-            node.output .-= learning_rate * node.batch_gradient
-            fill!(node.batch_gradient, 0)
+        if isa(node, Variable)
+            node.output .-= learning_rate * node.gradient
+            node.gradient = 0
         end
     end
 end
 
 function build_graph(x::Constant, y::Constant, rnn::myRNN)
-    # l1 = mat_mul(rnn.WW, rnn.h)
-    # l2 = mat_mul(rnn.WU, x)
-    # l3 = sum_op(l1, l2, rnn.bh)
-    # l4 = tan_h(l3)
     l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
-    l5 = dense(l1, rnn.WV)
-    e = cross_entropy_loss(l5, y)
+    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
+    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
+    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
+    l2 = dense(l1, rnn.WV) |> identity
+    e = cross_entropy_loss(l2, y)
 
 	return topological_sort(e)
 end
 
 
-function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learining_rate)
+function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learning_rate)
 
     @time for i=1:epochs
 
@@ -55,8 +53,6 @@ function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learining_rate)
 
         for k=1:196:size(x,1)
             for j=1:samples        
-
-
                 x_train = Constant(x[k:k+195, j])
                 y_train = Constant(y[:, j])
 
@@ -65,7 +61,7 @@ function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learining_rate)
                 backward!(graph)
 
                 if j % batch_size == 0
-                    update_weights!(graph, learining_rate, batch_size)
+                    update_weights!(graph, learning_rate)
                 end
             end
         end 
@@ -79,19 +75,21 @@ end
 
 function test(rnn::myRNN, x::Any, y::Any)
 
-    samples = size(x, 3)
+    samples = size(x, 2)
 
     global correct_prediction
     global cumulative
 
-    for i=1:samples
+    for k=1:196:size(x,1)
+        for j=1:samples
 
-        x_train = Constant(x[:, :, i])
-        y_train = Constant(y[i, :])
+            x_train = Constant(x[k:k+195, j])
+            y_train = Constant(y[:, j])
 
-        graph = build_graph(x_train, y_train, rnn)
-		forward!(graph)
+            graph = build_graph(x_train, y_train, rnn)
+            forward!(graph)
 
+        end
     end
 
     @printf("Test accuracy: %.4f\n\n", correct_prediction/cumulative)

@@ -2,7 +2,7 @@ using MLDatasets: MNIST
 using Flux
 include("model.jl")
 
-train_data = MNIST(:train)  
+train_data = MNIST(split=:train)  
 test_data  = MNIST(split=:test)
 
 x_train = reshape(train_data.features, 28 * 28, :)
@@ -21,8 +21,8 @@ h = Variable(zeros(64)) # previous hidden state
 rnn = myRNN(WW, WU, WV, bh, by, h)
 
 settings = (;
-    eta = 1e-2,
-    epochs = 3,
+    eta = 15e-3,
+    epochs = 5,
     batch_size = 100,
 )
 
@@ -30,4 +30,4 @@ settings = (;
 train(rnn, x_train, y_train, settings.epochs, settings.batch_size, settings.eta)
 
 # Test model
-# test(rnn, x_test, y_test) 
+test(rnn, x_test, y_test) 

@@ -1,17 +1,17 @@
 include("structures.jl")
 import Base: sum
 
-mat_mul(W :: GraphNode, h :: GraphNode) = BroadcastedOperator(mat_mul, W, h)
-forward(::BroadcastedOperator{typeof(mat_mul)}, W, h) = return W * h
-backward(::BroadcastedOperator{typeof(mat_mul)}, W, h, g) = return tuple(g * h', W' * g)
+# mat_mul(W :: GraphNode, h :: GraphNode) = BroadcastedOperator(mat_mul, W, h)
+# forward(::BroadcastedOperator{typeof(mat_mul)}, W, h) = return W * h
+# backward(::BroadcastedOperator{typeof(mat_mul)}, W, h, g) = return tuple(g * h', W' * g)
 
-sum_op(Wh :: GraphNode, Ux :: GraphNode, b :: GraphNode) = BroadcastedOperator(sum_op, Wh, Ux, b)
-forward(::BroadcastedOperator{typeof(sum_op)}, Wh, Ux, b) = return Wh + Ux + b
-backward(::BroadcastedOperator{typeof(sum_op)}, Wh, Ux, b, g) = return tuple(ones(length(Wh)), ones(length(Ux)), ones(length(b)))
+# sum_op(Wh :: GraphNode, Ux :: GraphNode, b :: GraphNode) = BroadcastedOperator(sum_op, Wh, Ux, b)
+# forward(::BroadcastedOperator{typeof(sum_op)}, Wh, Ux, b) = return Wh + Ux + b
+# backward(::BroadcastedOperator{typeof(sum_op)}, Wh, Ux, b, g) = return tuple(ones(length(Wh)), ones(length(Ux)), ones(length(b)))
 
-tan_h(x :: GraphNode) = BroadcastedOperator(tan_h, x)
-forward(::BroadcastedOperator{typeof(tan_h)}, x) = return tanh.(x)
-backward(::BroadcastedOperator{typeof(tan_h)}, x, g) = return g .* (1 .- tanh.(x) .^ 2)
+# tan_h(x :: GraphNode) = BroadcastedOperator(tan_h, x)
+# forward(::BroadcastedOperator{typeof(tan_h)}, x) = return tanh.(x)
+# backward(::BroadcastedOperator{typeof(tan_h)}, x, g) = return g .* (1 .- tanh.(x) .^ 2)
 
 
 rnnCell(U :: GraphNode, W :: GraphNode, h :: GraphNode, b :: GraphNode, x :: Constant) = BroadcastedOperator(rnnCell, U, W, h, b, x)
@@ -56,7 +56,7 @@ forward(::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y) = let
     loss = sum(log.(y_hat) .* y) * -1.0
     return loss
 end
-backward(node::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y, g) = let
+backward(::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y, g) = let
     y_hat = y_hat .- maximum(y_hat)
     y_hat = exp.(y_hat) ./ sum(exp.(y_hat))
     return tuple(g .* (y_hat .- y))
