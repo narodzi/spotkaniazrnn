@@ -15,14 +15,13 @@ backward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x, g) = let
     Wx_mul = W * h
     vectors_sum = Uh_mul + Wx_mul + b
 
-    dh = g .* (1 .- tanh.(vectors_sum) .^ 2) # Gradient pochodnej tanh
+    dh = g .* (1 .- tanh.(vectors_sum) .^ 2)
 
-    # Gradienty względem wag i wejść
-    dU = dh * transpose(x)
-    dW = dh * transpose(h)
+    dU = dh * x'
+    dW = dh * h'
     db = sum(dh, dims=2)
-    dx = transpose(U) * dh
-    dh_prev = transpose(W) * dh
+    dx = U' * dh
+    dh_prev = W' * dh
 
     return tuple(dU, dW, dh_prev, db, dx)
 end
@@ -38,12 +37,12 @@ backward(::BroadcastedOperator{typeof(identity)}, x, g) = tuple(g)
 
 cross_entropy_loss(y_hat::GraphNode, y::GraphNode) = BroadcastedOperator(cross_entropy_loss, y_hat, y)
 forward(::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y) = let
-    global cumulative
-    global correct_prediction
+    global predictions
+    global correct_predictions
 
-    cumulative += 1
+    predictions += 1
     if argmax(y_hat) == argmax(y)
-        correct_prediction += 1
+        correct_predictions += 1
     end
     
     y_hat = y_hat .- maximum(y_hat)

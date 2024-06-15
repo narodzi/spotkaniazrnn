@@ -6,16 +6,16 @@ include("forward-pass.jl")
 include("operators.jl")
 include("graph-builder.jl")
 
-correct_prediction = 0
-cumulative = 0
+predictions = 0
+correct_predictions = 0
 
 mutable struct myRNN
-    WW#Matrix{Float64}
-    WU#Matrix{Float64}
-    WV#Matrix{Float64}
-    bh#Vector{Float64}
-    by#Vector{Float64}
-    h#Vector{Float64}
+    WW
+    WU
+    WV
+    bh
+    by
+    h
 end
 
 function update_weights!(graph::Vector, lr::Float64, batch_size::Int64)
@@ -43,17 +43,15 @@ end
 
 function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learning_rate)
 
-    @time for i=1:epochs
+    for i=1:epochs
 
         epoch_loss = 0.0
         samples = size(x, 2)
 
-        global correct_prediction = 0
-        global cumulative = 0
+        global correct_predictions = 0
+        global predictions = 0
 
-        println("Epoch: ", i)
-
-        for j=1:samples
+        @time for j=1:samples
             y_train = Constant(y[:, j])
             
             graph = build_graph(x, y_train, rnn, j)
@@ -66,9 +64,12 @@ function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learning_rate)
             end
         end
 
-        @printf("   Average loss: %.4f\n", epoch_loss/samples)
-        @printf("   Train accuracy: %.4f\n", correct_prediction/cumulative)
+        epoch = "Epoch $i"
+        loss = epoch_loss/samples
+        acc_calc = round(100 * (correct_predictions/predictions), digits=2)
+        train_acc = "$acc_calc %"
 
+        @info epoch loss train_acc
     end
 end
 
@@ -77,15 +78,19 @@ function test(rnn::myRNN, x::Any, y::Any)
 
     samples = size(x, 2)
 
-    global correct_prediction
-    global cumulative
+    global correct_predictions = 0
+    global predictions = 0
 
-    for j=1:samples
+    @time for j=1:samples
         y_train = Constant(y[:, j])
         graph = build_graph(x, y_train, rnn, j)
         rnn.h = Variable(zeros(64))
         forward!(graph)
     end
 
-    @printf("Test accuracy: %.4f\n\n", correct_prediction/cumulative)
+    test = "Test"
+    acc_calc = round(100 * (correct_predictions/predictions), digits=2)
+    test_acc = "$acc_calc %"
+
+    @info test test_acc
 end

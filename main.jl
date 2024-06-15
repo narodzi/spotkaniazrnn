@@ -11,12 +11,12 @@ y_train  = Flux.onehotbatch(train_data.targets, 0:9)
 x_test = reshape(test_data.features, 28 * 28, :)
 y_test  = Flux.onehotbatch(test_data.targets, 0:9)
 
-WW = Variable(Flux.glorot_uniform(64,64)) # hidden weights Wh
-WU = Variable(Flux.glorot_uniform(64,14*14)) # input weights Wx
-WV = Variable(Flux.glorot_uniform(10,64)) # output weights Wa
-bh = Variable(zeros(64)) # hidden biases b
-by = Variable(zeros(10)) # output biases Wa
-h = Variable(zeros(64)) # previous hidden state
+WW = Variable(Flux.glorot_uniform(64,64))
+WU = Variable(Flux.glorot_uniform(64,14*14))
+WV = Variable(Flux.glorot_uniform(10,64))
+bh = Variable(zeros(64))
+by = Variable(zeros(10))
+h = Variable(zeros(64))
 
 rnn = myRNN(WW, WU, WV, bh, by, h)
 
@@ -26,8 +26,8 @@ settings = (;
     batch_size = 100,
 )
 
-# Train model
+println("Training model...")
 train(rnn, x_train, y_train, settings.epochs, settings.batch_size, settings.eta)
 
-# Test model
+println("Testing model...")
 test(rnn, x_test, y_test) 
