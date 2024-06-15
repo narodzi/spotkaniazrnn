@@ -1,35 +1,30 @@
 include("structures.jl")
 import Base: sum
 
-# mat_mul(W :: GraphNode, h :: GraphNode) = BroadcastedOperator(mat_mul, W, h)
-# forward(::BroadcastedOperator{typeof(mat_mul)}, W, h) = return W * h
-# backward(::BroadcastedOperator{typeof(mat_mul)}, W, h, g) = return tuple(g * h', W' * g)
-
-# sum_op(Wh :: GraphNode, Ux :: GraphNode, b :: GraphNode) = BroadcastedOperator(sum_op, Wh, Ux, b)
-# forward(::BroadcastedOperator{typeof(sum_op)}, Wh, Ux, b) = return Wh + Ux + b
-# backward(::BroadcastedOperator{typeof(sum_op)}, Wh, Ux, b, g) = return tuple(ones(length(Wh)), ones(length(Ux)), ones(length(b)))
-
-# tan_h(x :: GraphNode) = BroadcastedOperator(tan_h, x)
-# forward(::BroadcastedOperator{typeof(tan_h)}, x) = return tanh.(x)
-# backward(::BroadcastedOperator{typeof(tan_h)}, x, g) = return g .* (1 .- tanh.(x) .^ 2)
-
-
-rnnCell(U :: GraphNode, W :: GraphNode, h :: GraphNode, b :: GraphNode, x :: Constant) = BroadcastedOperator(rnnCell, U, W, h, b, x)
-forward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x) = let 
+rnnCell(U :: GraphNode, W :: GraphNode, h :: GraphNode, b :: GraphNode, x :: GraphNode) = BroadcastedOperator(rnnCell, U, W, h, b, x)
+forward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x) = let
     Uh_mul = U * x
     Wx_mul = W * h
 
     vectors_sum = Uh_mul + Wx_mul + b
-
+     
     return tanh.(vectors_sum)
 end
 backward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x, g) = let 
     Uh_mul = U * x
     Wx_mul = W * h
-
     vectors_sum = Uh_mul + Wx_mul + b
 
-    return g .* (1 .- tanh.(vectors_sum) .^ 2)
+    dh = g .* (1 .- tanh.(vectors_sum) .^ 2) # Gradient pochodnej tanh
+
+    # Gradienty względem wag i wejść
+    dU = dh * transpose(x)
+    dW = dh * transpose(h)
+    db = sum(dh, dims=2)
+    dx = transpose(U) * dh
+    dh_prev = transpose(W) * dh
+
+    return tuple(dU, dW, dh_prev, db, dx)
 end
 
 

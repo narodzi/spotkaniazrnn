@@ -9,7 +9,7 @@ include("graph-builder.jl")
 correct_prediction = 0
 cumulative = 0
 
-struct myRNN
+mutable struct myRNN
     WW#Matrix{Float64}
     WU#Matrix{Float64}
     WV#Matrix{Float64}
@@ -18,24 +18,26 @@ struct myRNN
     h#Vector{Float64}
 end
 
-function update_weights!(graph, learning_rate)
+function update_weights!(graph::Vector, lr::Float64, batch_size::Int64)
     for node in graph
-        if isa(node, Variable)
-            node.output .-= learning_rate * node.gradient
-            node.gradient = 0
+        if isa(node, Variable) && hasproperty(node, :batch_gradient)
+			node.batch_gradient ./= batch_size
+            node.output .-= lr * node.batch_gradient 
+            fill(node.batch_gradient, 0)
         end
     end
 end
 
-function build_graph(x::Constant, y::Constant, rnn::myRNN)
-    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
-    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
-    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
-    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, x)
-    l2 = dense(l1, rnn.WV) |> identity
-    e = cross_entropy_loss(l2, y)
 
-	return topological_sort(e)
+function build_graph(x, y, rnn::myRNN, j:: Number)
+    l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, Constant(x[1:196, j]))
+    l2 = rnnCell(rnn.WU, rnn.WW, l1, rnn.bh, Constant(x[197:392, j]))
+    l3 = rnnCell(rnn.WU, rnn.WW, l2, rnn.bh, Constant(x[393:588, j]))
+    l4 = rnnCell(rnn.WU, rnn.WW, l3, rnn.bh, Constant(x[589:end, j]))
+    l5 = dense(l4, rnn.WV) |> identity
+    e = cross_entropy_loss(l5, y)
+
+    return topological_sort(e)
 end
 
 
@@ -51,20 +53,18 @@ function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learning_rate)
 
         println("Epoch: ", i)
 
-        for k=1:196:size(x,1)
-            for j=1:samples        
-                x_train = Constant(x[k:k+195, j])
-                y_train = Constant(y[:, j])
+        for j=1:samples
+            y_train = Constant(y[:, j])
+            
+            graph = build_graph(x, y_train, rnn, j)
+            rnn.h = Variable(zeros(64))
+            epoch_loss += forward!(graph)
+            backward!(graph)
 
-                graph = build_graph(x_train, y_train, rnn)
-                epoch_loss += forward!(graph)
-                backward!(graph)
-
-                if j % batch_size == 0
-                    update_weights!(graph, learning_rate)
-                end
+            if j % batch_size == 0
+                update_weights!(graph, learning_rate, batch_size)
             end
-        end 
+        end
 
         @printf("   Average loss: %.4f\n", epoch_loss/samples)
         @printf("   Train accuracy: %.4f\n", correct_prediction/cumulative)
@@ -80,16 +80,11 @@ function test(rnn::myRNN, x::Any, y::Any)
     global correct_prediction
     global cumulative
 
-    for k=1:196:size(x,1)
-        for j=1:samples
-
-            x_train = Constant(x[k:k+195, j])
-            y_train = Constant(y[:, j])
-
-            graph = build_graph(x_train, y_train, rnn)
-            forward!(graph)
-
-        end
+    for j=1:samples
+        y_train = Constant(y[:, j])
+        graph = build_graph(x, y_train, rnn, j)
+        rnn.h = Variable(zeros(64))
+        forward!(graph)
     end
 
     @printf("Test accuracy: %.4f\n\n", correct_prediction/cumulative)
