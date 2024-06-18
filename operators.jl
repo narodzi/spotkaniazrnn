@@ -2,30 +2,11 @@ include("structures.jl")
 import Base: sum
 
 rnnCell(U :: GraphNode, W :: GraphNode, h :: GraphNode, b :: GraphNode, x :: GraphNode) = BroadcastedOperator(rnnCell, U, W, h, b, x)
-forward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x) = let
-    Uh_mul = U * x
-    Wx_mul = W * h
-
-    vectors_sum = Uh_mul + Wx_mul + b
-     
-    return tanh.(vectors_sum)
-end
+forward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x) = tanh.(U * x .+ W * h .+ b)
 backward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x, g) = let 
-    Uh_mul = U * x
-    Wx_mul = W * h
-    vectors_sum = Uh_mul + Wx_mul + b
-
-    dh = g .* (1 .- tanh.(vectors_sum) .^ 2)
-
-    dU = dh * x'
-    dW = dh * h'
-    db = sum(dh, dims=2)
-    dx = U' * dh
-    dh_prev = W' * dh
-
-    return tuple(dU, dW, dh_prev, db, dx)
+    dh = g .* (1 .- tanh.((U * x) .+ (W * h) .+ b) .^ 2)
+    return tuple(dh * x', dh * h', W' * dh, sum(dh, dims=2), U' * dh)
 end
-
 
 dense(x::GraphNode, w::GraphNode) = BroadcastedOperator(dense, x, w)
 forward(::BroadcastedOperator{typeof(dense)}, x, w) = w * x
@@ -47,7 +28,7 @@ forward(::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y) = let
     
     y_hat = y_hat .- maximum(y_hat)
     y_hat = exp.(y_hat) ./ sum(exp.(y_hat))
-    loss = sum(log.(y_hat) .* y) * -1.0
+    loss = -sum(log.(y_hat) .* y)
     return loss
 end
 backward(::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y, g) = let

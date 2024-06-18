@@ -9,27 +9,26 @@ include("graph-builder.jl")
 predictions = 0
 correct_predictions = 0
 
-mutable struct myRNN
-    WW
-    WU
-    WV
-    bh
-    by
-    h
+struct myRNN
+    WW :: Variable
+    WU :: Variable
+    WV :: Variable
+    bh :: Variable
+    by :: Variable
+    h :: Variable
 end
 
 function update_weights!(graph::Vector, lr::Float64, batch_size::Int64)
     for node in graph
-        if isa(node, Variable) && hasproperty(node, :batch_gradient)
+        if isa(node, Variable)
 			node.batch_gradient ./= batch_size
             node.output .-= lr * node.batch_gradient 
-            fill(node.batch_gradient, 0)
         end
     end
 end
 
 
-function build_graph(x, y, rnn::myRNN, j:: Number)
+function build_graph(x::Matrix{Float64}, y:: Matrix{Float64}, rnn::myRNN, j:: Number)
     l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, Constant(x[1:196, j]))
     l2 = rnnCell(rnn.WU, rnn.WW, l1, rnn.bh, Constant(x[197:392, j]))
     l3 = rnnCell(rnn.WU, rnn.WW, l2, rnn.bh, Constant(x[393:588, j]))
@@ -41,7 +40,7 @@ function build_graph(x, y, rnn::myRNN, j:: Number)
 end
 
 
-function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learning_rate)
+function train(rnn::myRNN, x::Matrix{Float64},  y:: Constant, epochs, batch_size, learning_rate)
 
     for i=1:epochs
 
@@ -55,7 +54,6 @@ function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learning_rate)
             y_train = Constant(y[:, j])
             
             graph = build_graph(x, y_train, rnn, j)
-            rnn.h = Variable(zeros(64))
             epoch_loss += forward!(graph)
             backward!(graph)
 
@@ -74,7 +72,7 @@ function train(rnn::myRNN, x::Any, y::Any, epochs, batch_size, learning_rate)
 end
 
 
-function test(rnn::myRNN, x::Any, y::Any)
+function test(rnn::myRNN, x::Matrix{Float64},  y:: Matrix{Float64})
 
     samples = size(x, 2)
 
@@ -84,7 +82,6 @@ function test(rnn::myRNN, x::Any, y::Any)
     @time for j=1:samples
         y_train = Constant(y[:, j])
         graph = build_graph(x, y_train, rnn, j)
-        rnn.h = Variable(zeros(64))
         forward!(graph)
     end
 

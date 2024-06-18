@@ -13,19 +13,10 @@ mutable struct Variable <: GraphNode
     Variable(output; name = "?") = new(output, nothing, name, nothing)
 end
 
-mutable struct ScalarOperator{F} <: Operator
-    inputs :: Any
-    output :: Any
-    gradient :: Any
-    name :: String
-    ScalarOperator(fun, inputs...; name="?") = new{typeof(fun)}(inputs, nothing, nothing, name)
-end
-
 mutable struct BroadcastedOperator{F} <: Operator
     inputs :: Any
     output :: Any
     gradient :: Any
     name :: String
-    cache :: Any
-    BroadcastedOperator(fun, inputs...; name="?") = new{typeof(fun)}(inputs, nothing, nothing, name, nothing)
+    BroadcastedOperator(fun, inputs...; name="?") = new{typeof(fun)}(inputs, nothing, nothing, name)
 end

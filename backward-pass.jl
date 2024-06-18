@@ -2,13 +2,17 @@ include("structures.jl")
 
 update!(node::Constant, gradient) = nothing
 update!(node::GraphNode, gradient) = let
-    node.gradient = gradient
-    if typeof(node) == Variable
+    if isa(node, Variable)
         if isnothing(node.batch_gradient)
             node.batch_gradient = gradient
         else
             node.batch_gradient .+= gradient
         end
+    
+    elseif isnothing(node.gradient)
+        node.gradient = gradient 
+    else 
+        node.gradient .+= gradient
     end
 end
 
