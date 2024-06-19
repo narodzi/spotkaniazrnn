@@ -5,12 +5,12 @@ struct Constant{T} <: GraphNode
     output :: T
 end
 
-mutable struct Variable <: GraphNode
-    output :: Any
-    gradient :: Any
-    name::String
-    batch_gradient::Any
-    Variable(output; name = "?") = new(output, nothing, name, nothing)
+mutable struct Variable{T} <: GraphNode
+    output :: T
+    gradient :: Union{Nothing, T}
+    name :: String    
+    batch_gradient :: Union{Nothing, T}
+    Variable(output::T; name::String = "?") where T = new{T}(output, nothing, name, nothing)
 end
 
 mutable struct BroadcastedOperator{F} <: Operator

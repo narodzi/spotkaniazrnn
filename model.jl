@@ -1,5 +1,6 @@
 using Random
 using Printf
+using OneHotArrays
 include("structures.jl")
 include("backward-pass.jl")
 include("forward-pass.jl")
@@ -10,12 +11,12 @@ predictions = 0
 correct_predictions = 0
 
 struct myRNN
-    WW :: Variable
-    WU :: Variable
-    WV :: Variable
-    bh :: Variable
-    by :: Variable
-    h :: Variable
+    WW :: Variable{Matrix{Float32}}
+    WU :: Variable{Matrix{Float32}}
+    WV :: Variable{Matrix{Float32}}
+    bh :: Variable{Vector{Float32}}
+    by :: Variable{Vector{Float32}}
+    h :: Variable{Vector{Float32}}
 end
 
 function update_weights!(graph::Vector, lr::Float64, batch_size::Int64)
@@ -28,7 +29,7 @@ function update_weights!(graph::Vector, lr::Float64, batch_size::Int64)
 end
 
 
-function build_graph(x::Matrix{Float64}, y:: Matrix{Float64}, rnn::myRNN, j:: Number)
+function build_graph(x::Matrix{Float32}, y, rnn::myRNN, j:: Number)
     l1 = rnnCell(rnn.WU, rnn.WW, rnn.h, rnn.bh, Constant(x[1:196, j]))
     l2 = rnnCell(rnn.WU, rnn.WW, l1, rnn.bh, Constant(x[197:392, j]))
     l3 = rnnCell(rnn.WU, rnn.WW, l2, rnn.bh, Constant(x[393:588, j]))
@@ -40,7 +41,7 @@ function build_graph(x::Matrix{Float64}, y:: Matrix{Float64}, rnn::myRNN, j:: Nu
 end
 
 
-function train(rnn::myRNN, x::Matrix{Float64},  y:: Constant, epochs, batch_size, learning_rate)
+function train(rnn::myRNN, x::Matrix{Float32},  y, epochs:: Int64, batch_size:: Int64, learning_rate:: Float64)
 
     for i=1:epochs
 
@@ -72,7 +73,7 @@ function train(rnn::myRNN, x::Matrix{Float64},  y:: Constant, epochs, batch_size
 end
 
 
-function test(rnn::myRNN, x::Matrix{Float64},  y:: Matrix{Float64})
+function test(rnn::myRNN, x::Matrix{Float32}, y)
 
     samples = size(x, 2)
 
