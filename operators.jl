@@ -8,9 +8,9 @@ backward(::BroadcastedOperator{typeof(rnnCell)}, U, W, h, b, x, g) = let
     return tuple(dh * x', dh * h', W' * dh, sum(dh, dims=2), U' * dh)
 end
 
-dense(x::GraphNode, w::GraphNode) = BroadcastedOperator(dense, x, w)
-forward(::BroadcastedOperator{typeof(dense)}, x, w) = w * x
-backward(::BroadcastedOperator{typeof(dense)}, x, w, g) = tuple(w' * g, g * x', g)
+dense(x::GraphNode, w::GraphNode, b::GraphNode) = BroadcastedOperator(dense, x, w, b)
+forward(::BroadcastedOperator{typeof(dense)}, x, w, b) = w * x + b
+backward(::BroadcastedOperator{typeof(dense)}, x, w, b, g) = tuple(w' * g, g * x', g)
 
 identity(x::GraphNode) = BroadcastedOperator(identity, x)
 forward(::BroadcastedOperator{typeof(identity)}, x) = x

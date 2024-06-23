@@ -34,7 +34,7 @@ function build_graph(x::Matrix{Float32}, y, rnn::myRNN, j:: Number)
     l2 = rnnCell(rnn.WU, rnn.WW, l1, rnn.bh, Constant(x[197:392, j]))
     l3 = rnnCell(rnn.WU, rnn.WW, l2, rnn.bh, Constant(x[393:588, j]))
     l4 = rnnCell(rnn.WU, rnn.WW, l3, rnn.bh, Constant(x[589:end, j]))
-    l5 = dense(l4, rnn.WV) |> identity
+    l5 = dense(l4, rnn.WV, rnn.by) |> identity
     e = cross_entropy_loss(l5, Constant(y[:, j]))
 
     return topological_sort(e)
