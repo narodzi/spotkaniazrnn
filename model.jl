@@ -23,6 +23,7 @@ function update_weights!(graph::Vector, lr::Float64, batch_size::Int64)
         if isa(node, Variable)
 			node.batch_gradient ./= batch_size
             node.output .-= lr * node.batch_gradient 
+            node.batch_gradient .= 0
         end
     end
 end
