@@ -42,7 +42,7 @@ end
 
 function train(rnn::myRNN, x::Matrix{Float32},  y, epochs:: Int64, batch_size:: Int64, learning_rate:: Float64)
 
-    for i=1:epochs
+    @time for i=1:epochs
 
         epoch_loss = 0.0
         samples = size(x, 2)
@@ -77,14 +77,17 @@ function test(rnn::myRNN, x::Matrix{Float32}, y)
     global correct_predictions = 0
     global predictions = 0
 
+    epoch_loss = 0.0
+
     @time for j=1:samples
         graph = build_graph(x, y, rnn, j)
-        forward!(graph)
+        epoch_loss += forward!(graph)
     end
 
     test = "Test"
     acc_calc = round(100 * (correct_predictions/predictions), digits=2)
     test_acc = "$acc_calc %"
+    loss = epoch_loss/samples
 
-    @info test test_acc
+    @info loss test test_acc
 end
