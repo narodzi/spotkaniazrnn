@@ -26,13 +26,11 @@ forward(::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y) = let
         correct_predictions += 1
     end
     
-    y_hat = y_hat .- maximum(y_hat)
-    y_hat = exp.(y_hat) ./ sum(exp.(y_hat))
-    loss = -sum(log.(y_hat) .* y)
+    y_h = exp.(y_hat .- maximum(y_hat)) ./ sum(exp.(y_hat .- maximum(y_hat)))
+    loss = -sum(log.(y_h) .* y)
     return loss
 end
 backward(::BroadcastedOperator{typeof(cross_entropy_loss)}, y_hat, y, g) = let
-    y_hat = y_hat .- maximum(y_hat)
-    y_hat = exp.(y_hat) ./ sum(exp.(y_hat))
-    return tuple(g .* (y_hat .- y))
+    y_h = exp.(y_hat .- maximum(y_hat)) ./ sum(exp.(y_hat .- maximum(y_hat)))
+    return tuple(g .* (y_h .- y))
 end

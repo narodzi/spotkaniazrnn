@@ -1,6 +1,5 @@
 using Random
 using Printf
-using OneHotArrays
 include("structures.jl")
 include("backward-pass.jl")
 include("forward-pass.jl")
@@ -35,11 +34,10 @@ function build_graph(x::Matrix{Float32}, y, rnn::myRNN, j:: Number)
     l3 = rnnCell(rnn.WU, rnn.WW, l2, rnn.bh, Constant(x[393:588, j]))
     l4 = rnnCell(rnn.WU, rnn.WW, l3, rnn.bh, Constant(x[589:end, j]))
     l5 = dense(l4, rnn.WV) |> identity
-    e = cross_entropy_loss(l5, y)
+    e = cross_entropy_loss(l5, Constant(y[:, j]))
 
     return topological_sort(e)
 end
-
 
 function train(rnn::myRNN, x::Matrix{Float32},  y, epochs:: Int64, batch_size:: Int64, learning_rate:: Float64)
 
@@ -51,10 +49,8 @@ function train(rnn::myRNN, x::Matrix{Float32},  y, epochs:: Int64, batch_size:: 
         global correct_predictions = 0
         global predictions = 0
 
-        @time for j=1:samples
-            y_train = Constant(y[:, j])
-            
-            graph = build_graph(x, y_train, rnn, j)
+        @time for j=1:samples            
+            graph = build_graph(x, y, rnn, j)
             epoch_loss += forward!(graph)
             backward!(graph)
 
@@ -81,8 +77,7 @@ function test(rnn::myRNN, x::Matrix{Float32}, y)
     global predictions = 0
 
     @time for j=1:samples
-        y_train = Constant(y[:, j])
-        graph = build_graph(x, y_train, rnn, j)
+        graph = build_graph(x, y, rnn, j)
         forward!(graph)
     end
 

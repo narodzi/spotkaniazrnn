@@ -7,10 +7,10 @@ function main()
     test_data  = MNIST(split=:test)
     
     x_train = reshape(train_data.features, 28 * 28, :)
-    y_train  =  Flux.onehotbatch(train_data.targets, 0:9)
+    y_train = Flux.onehotbatch(train_data.targets, 0:9)
     
-    x_test =  reshape(test_data.features, 28 * 28, :)
-    y_test  = Flux.onehotbatch(test_data.targets, 0:9)
+    x_test = reshape(test_data.features, 28 * 28, :)
+    y_test = Flux.onehotbatch(test_data.targets, 0:9)
     
     rnn = myRNN(
         Variable(Flux.glorot_uniform(64,64)), 
